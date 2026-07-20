@@ -231,40 +231,6 @@ Includes `Deployment`, `Service`, `PVC`, `Ingress` (TLS-ready), and `HPA`.
 
 ---
 
-## Key design decisions
-
-### Why Vertex AI (not Gemini API key)?
-Vertex AI authenticates via Application Default Credentials (ADC), so there
-are **no API keys to leak**. User identity flows from `gcloud auth`. The
-`gcp_project_id` + `gcp_location` are the only configuration needed.
-
-### Why LangGraph with a hierarchical topology?
-The PRD explicitly asks for CEO → Manager → Worker separation so each
-agent owns a clear responsibility. This pattern scales: in Phase 2 we add
-new workers (Risk, Performance) under existing managers without touching
-the CEO or graph topology.
-
-### Why local-first storage (SQLite + ChromaDB)?
-Phase 1 must run on a laptop without external services. SQLite is
-forward-compatible with PostgreSQL (same SQL, same schema). ChromaDB is a
-file-based vector store that needs no server. Both can be swapped in
-Phase 2 by changing the connection string.
-
-### Why mock tools?
-The PRD's Phase 1 non-goals explicitly exclude real Bloomberg/Salesforce/
-DocuSign integrations. The mock tools (deterministic seed data) make the
-system testable end-to-end without external contracts. Each tool has the
-same interface shape as its Phase 2 replacement, so swapping is mechanical.
-
-### Why rule-based fallbacks?
-PRD §4 (Indonesia version) requires "hardcoded guardrails if LLM
-hallucinates". When the LLM is unreachable (quota, network, auth), the
-system silently degrades to deterministic intent classification, worker
-planning, and response composition — all logged with `fallback=True` in
-the audit trail.
-
----
-
 ## Documents in this repo
 
 | File | Purpose |
