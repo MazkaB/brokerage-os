@@ -1,0 +1,89 @@
+apiVersion: v1
+kind: Namespace
+metadata: { name: brokerage-os }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bos
+  namespace: brokerage-os
+  labels: { app: bos }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: bos } }
+  template:
+    metadata: { labels: { app: bos } }
+    spec:
+      containers:
+        - name: bos
+          image: brokerage-os:1.0.0
+          ports: [{ containerPort: 8000 }]
+          env:
+            - name: GCP_PROJECT_ID
+              valueFrom: { secretKeyRef: { name: bos-secrets, key: gcp-project-id } }
+            - name: GCP_LOCATION
+              value: us-central1
+            - name: BOS_API_KEY
+              valueFrom: { secretKeyRef: { name: bos-secrets, key: bos-api-key } }
+            - name: BOS_JWT_SECRET
+              valueFrom: { secretKeyRef: { name: bos-secrets, key: bos-jwt-secret } }
+            - name: BOS_ENV
+              value: prod
+          volumeMounts:
+            - name: bos-data
+              mountPath: /app/app/data
+          readinessProbe:
+            httpGet: { path: /api/admin/health, port: 8000 }
+              # Note: requires X-API-Key header; in prod use /healthz without auth
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /api/admin/health, port: 8000 }
+            initialDelaySeconds: 60
+            periodSeconds: 30
+          resources:
+            requests: { cpu: 250m, memory: 512Mi }
+            limits:   { cpu: 1000m, memory: 1Gi }
+      volumes:
+        - name: bos-data
+          persistentVolumeClaim: { claimName: bos-data }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bos
+  namespace: brokerage-os
+spec:
+  selector: { app: bos }
+  ports: [{ port: 80, targetPort: 8000 }]
+  type: ClusterIP
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: bos-data
+  namespace: brokerage-os
+spec:
+  accessModes: [ReadWriteOnce]
+  resources: { requests: { storage: 5Gi } }
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: bos
+  namespace: brokerage-os
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  tls:
+    - hosts: [bos.example.com]
+      secretName: bos-tls
+  rules:
+    - host: bos.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service: { name: bos, port: { number: 80 } }

@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+.Python
+build/
+dist/
+
+# Virtual envs
+venv/
+env/
+.venv/
+.envrc
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Project secrets (NEVER commit)
+.env
+bos/.env
+
+# Runtime data
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+bos/app/data/
+!bos/app/data/.gitkeep
+
+# Chroma + storage
+chroma_db/
+bos/app/data/chroma/
+*.log
+
+# Playwright MCP artifacts
+.playwright-mcp/
+
+# Editor / agent local state
+.zcode/
+
+# OS
+Thumbs.db
+
+# Coverage
+.coverage
+htmlcov/
+.pytest_cache/

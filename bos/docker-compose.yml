@@ -1,0 +1,32 @@
+# =============================================================
+# BOS Phase 1 - docker-compose
+#
+# Single-service stack. All data persists in the `bos-data` volume.
+#
+#   docker compose up --build
+#   open http://localhost:8000
+#   open http://localhost:8000/admin
+# =============================================================
+services:
+  bos:
+    build: .
+    image: brokerage-os:1.0.0
+    container_name: brokerage-os
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      GEMINI_API_KEY: ${GEMINI_API_KEY:?GEMINI_API_KEY must be set}
+      GEMINI_LLM_MODEL: ${GEMINI_LLM_MODEL:-gemini-2.5-flash}
+      GEMINI_EMBEDDING_MODEL: ${GEMINI_EMBEDDING_MODEL:-gemini-embedding-001}
+      BOS_API_KEY: ${BOS_API_KEY:-bos-local-dev-key-CHANGE-ME}
+      BOS_JWT_SECRET: ${BOS_JWT_SECRET:-bos-local-jwt-secret-CHANGE-ME}
+      BOS_ENCRYPTION_KEY: ${BOS_ENCRYPTION_KEY:-bos-local-encryption-key-32bytes}
+      BOS_LOG_LEVEL: ${BOS_LOG_LEVEL:-INFO}
+      BOS_APPROVAL_TIMEOUT_SECONDS: ${BOS_APPROVAL_TIMEOUT_SECONDS:-1800}
+    volumes:
+      - bos-data:/app/app/data
+      - ./knowledge_base:/app/knowledge_base:ro
+
+volumes:
+  bos-data:

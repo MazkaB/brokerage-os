@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="data:,">
+<title>Brokerage OS - Admin</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --panel: #ffffff;
+    --border: #e5e7eb;
+    --text: #111827;
+    --muted: #6b7280;
+    --accent: #2563eb;
+    --accent-hover: #1d4ed8;
+    --success: #16a34a;
+    --success-bg: #dcfce7;
+    --danger: #dc2626;
+    --danger-bg: #fee2e2;
+    --warn: #d97706;
+    --warn-bg: #fef3c7;
+    --info: #2563eb;
+    --info-bg: #dbeafe;
+    --surface: #f9fafb;
+    --surface-hover: #f3f4f6;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 24px;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  header .title { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
+  header .meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  header a {
+    color: var(--muted);
+    text-decoration: none;
+    margin-left: 16px;
+    font-size: 13px;
+    transition: color 0.15s;
+  }
+  header a:hover { color: var(--accent); }
+
+  .api-key-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .api-key-row input {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-family: inherit;
+    outline: none;
+  }
+  .api-key-row input:focus { border-color: var(--accent); background: var(--bg); }
+  .btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    font-family: inherit;
+    transition: background 0.15s;
+  }
+  .btn:hover { background: var(--accent-hover); }
+  .btn.secondary {
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn.secondary:hover { background: var(--surface-hover); }
+
+  /* KPIs */
+  .kpis {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .kpi {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 14px 16px;
+    border-radius: 8px;
+  }
+  .kpi .label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 500;
+  }
+  .kpi .value {
+    font-size: 24px;
+    font-weight: 600;
+    margin-top: 4px;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+  .kpi .value.ok { color: var(--success); }
+  .kpi .value.bad { color: var(--danger); }
+  .kpi .sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    gap: 2px;
+    margin-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .tab {
+    padding: 10px 14px;
+    cursor: pointer;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 500;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: color 0.15s, border-color 0.15s;
+    font-family: inherit;
+    background: none;
+    border-left: none;
+    border-right: none;
+    border-top: none;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active {
+    color: var(--text);
+    border-color: var(--accent);
+  }
+
+  /* Panel */
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+  .panel .head {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    font-weight: 600;
+    font-size: 13px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  /* Table */
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td {
+    text-align: left;
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  th {
+    color: var(--muted);
+    font-weight: 500;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    background: var(--surface);
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface); }
+  td.mono, th.mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+  }
+
+  /* Tag */
+  .tag {
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 500;
+    display: inline-block;
+    letter-spacing: 0.02em;
+  }
+  .tag.pending     { background: var(--warn-bg);    color: var(--warn); }
+  .tag.approved    { background: var(--success-bg); color: var(--success); }
+  .tag.rejected    { background: var(--danger-bg);  color: var(--danger); }
+  .tag.expired     { background: var(--surface-hover); color: var(--muted); }
+  .tag.completed   { background: var(--success-bg); color: var(--success); }
+  .tag.running     { background: var(--info-bg);    color: var(--info); }
+  .tag.awaiting_approval { background: var(--warn-bg); color: var(--warn); }
+  .tag.verified    { background: var(--success-bg); color: var(--success); }
+  .tag.active      { background: var(--success-bg); color: var(--success); }
+
+  .empty {
+    padding: 24px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  .actions-cell button { margin-right: 4px; }
+  .btn-success {
+    background: var(--success) !important;
+    color: #fff !important;
+    border: none !important;
+  }
+  .btn-success:hover { background: #15803d !important; }
+  .btn-danger {
+    background: var(--danger) !important;
+    color: #fff !important;
+    border: none !important;
+  }
+  .btn-danger:hover { background: #b91c1c !important; }
+
+  /* KB forms */
+  .ingest-form {
+    padding: 12px 16px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+  }
+  .ingest-form:last-child { border-bottom: none; }
+  .ingest-form input[type=text],
+  .ingest-form select {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 7px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-family: inherit;
+    outline: none;
+  }
+  .ingest-form input[type=text]:focus,
+  .ingest-form select:focus { border-color: var(--accent); background: var(--bg); }
+  .ingest-form input[type=file] { color: var(--muted); font-size: 12px; }
+
+  #ingestResult {
+    padding: 10px 16px;
+    font-size: 12px;
+    color: var(--muted);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+
+  .kb-stats {
+    padding: 14px 16px;
+    font-size: 13px;
+    line-height: 1.7;
+    border-bottom: 1px solid var(--border);
+  }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <div class="title">Brokerage OS Admin</div>
+    <div class="meta">Phase 1</div>
+  </div>
+  <div>
+    <a href="/">Chat</a>
+    <a href="/docs">API Docs</a>
+  </div>
+</header>
+
+<div class="api-key-row">
+  <input id="apiKey" type="password" placeholder="BOS API Key" value="bos-local-dev-key-CHANGE-ME">
+  <button class="btn" onclick="refreshAll()">Refresh</button>
+</div>
+
+<div class="kpis" id="kpis"></div>
+
+<div class="tabs">
+  <button class="tab active" data-tab="approvals">Approvals</button>
+  <button class="tab" data-tab="workflows">Workflows</button>
+  <button class="tab" data-tab="audit">Audit Trail</button>
+  <button class="tab" data-tab="metrics">Metrics</button>
+  <button class="tab" data-tab="clients">Clients</button>
+  <button class="tab" data-tab="documents">Documents</button>
+  <button class="tab" data-tab="events">Calendar</button>
+  <button class="tab" data-tab="kb">Knowledge Base</button>
+</div>
+
+<div id="tabContent"></div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+<script>
+const API_KEY = () => $('apiKey').value;
+function $ (id) { return document.getElementById(id); }
+function headers() { return { 'X-API-Key': API_KEY(), 'Content-Type': 'application/json' }; }
+async function getJSON(path) {
+  const r = await fetch(path, { headers: headers() });
+  if (!r.ok) throw new Error(`${r.status} ${await r.text()}`);
+  return r.json();
+}
+async function postJSON(path, body) {
+  const r = await fetch(path, { method: 'POST', headers: headers(), body: JSON.stringify(body) });
+  if (!r.ok) throw new Error(`${r.status} ${await r.text()}`);
+  return r.json();
+}
+function fmtTime(t) {
+  if (!t) return '-';
+  return new Date(t * 1000).toLocaleString();
+}
+function escapeHtml(s) {
+  return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+document.querySelectorAll('.tab').forEach(t => {
+  t.onclick = () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    renderTab(t.dataset.tab);
+  };
+});
+
+async function refreshAll() {
+  try {
+    const [health, approvals, workflows] = await Promise.all([
+      getJSON('/api/admin/health'),
+      getJSON('/api/approvals'),
+      getJSON('/api/admin/workflows'),
+    ]);
+    const pending = approvals.approvals.filter(a => a.status === 'pending').length;
+    const running = workflows.workflows.filter(w => w.status === 'running' || w.status === 'awaiting_approval').length;
+    const completed = workflows.workflows.filter(w => w.status === 'completed').length;
+    $('kpis').innerHTML =
+      '<div class="kpi"><div class="label">Status</div><div class="value ' + (health.status==='ok'?'ok':'bad') + '">' + (health.status||'?') + '</div><div class="sub">Gemini: ' + (health.gemini?'ok':'down') + ' · KB chunks: ' + (health.kb?.chunks ?? '?') + '</div></div>' +
+      '<div class="kpi"><div class="label">Pending Approvals</div><div class="value ' + (pending>0?'bad':'ok') + '">' + pending + '</div><div class="sub">awaiting human</div></div>' +
+      '<div class="kpi"><div class="label">Active Workflows</div><div class="value">' + running + '</div><div class="sub">' + completed + ' completed</div></div>' +
+      '<div class="kpi"><div class="label">Total Workflows</div><div class="value">' + workflows.workflows.length + '</div><div class="sub">all-time</div></div>';
+    renderTab(document.querySelector('.tab.active').dataset.tab);
+  } catch (e) {
+    $('kpis').innerHTML = '<div class="kpi"><div class="label">Error</div><div class="value bad">!</div><div class="sub">' + escapeHtml(e.message) + '</div></div>';
+  }
+}
+
+async function renderTab(name) {
+  const c = $('tabContent');
+  c.innerHTML = '<div class="panel"><div class="empty">Loading...</div></div>';
+  try {
+    if (name === 'approvals') {
+      const data = await getJSON('/api/approvals');
+      const rows = data.approvals.map(a =>
+        '<tr>' +
+          '<td class="mono">' + escapeHtml(a.id.slice(0,8)) + '</td>' +
+          '<td>' + escapeHtml(a.intent||'') + '</td>' +
+          '<td class="mono">' + escapeHtml(a.thread_id||'').slice(0,10) + '</td>' +
+          '<td>' + fmtTime(a.requested_at) + '</td>' +
+          '<td><span class="tag ' + a.status + '">' + a.status + '</span></td>' +
+          '<td>' + escapeHtml(a.decided_by||'-') + '</td>' +
+          '<td class="actions-cell">' +
+            (a.status==='pending' ?
+              '<button class="btn btn-success" onclick="decide(\'' + a.id + '\',\'approved\')">Approve</button>' +
+              '<button class="btn btn-danger" onclick="decide(\'' + a.id + '\',\'rejected\')">Reject</button>'
+              : '') +
+          '</td>' +
+        '</tr>').join('');
+      c.innerHTML = panel('Approvals', '<table><thead><tr><th>ID</th><th>Intent</th><th>Thread</th><th>Requested</th><th>Status</th><th>Decider</th><th></th></tr></thead><tbody>' + (rows || '<tr><td colspan=7 class="empty">No approvals yet.</td></tr>') + '</tbody></table>');
+    } else if (name === 'workflows') {
+      const data = await getJSON('/api/admin/workflows');
+      const rows = data.workflows.map(w =>
+        '<tr>' +
+          '<td class="mono">' + escapeHtml(w.thread_id||'').slice(0,12) + '</td>' +
+          '<td>' + escapeHtml(w.intent||'-') + '</td>' +
+          '<td>' + escapeHtml(w.manager||'-') + '</td>' +
+          '<td>' + ((w.workers||[]).join(', ')||'-') + '</td>' +
+          '<td>' + (w.approval_required?'<span class="tag pending">yes</span>':'-') + '</td>' +
+          '<td><span class="tag ' + (w.status||'') + '">' + (w.status||'-') + '</span></td>' +
+          '<td>' + fmtTime(w.updated_at) + '</td>' +
+        '</tr>').join('');
+      c.innerHTML = panel('Workflows', '<table><thead><tr><th>Thread</th><th>Intent</th><th>Manager</th><th>Workers</th><th>Approval</th><th>Status</th><th>Updated</th></tr></thead><tbody>' + (rows || '<tr><td colspan=7 class="empty">No workflows yet.</td></tr>') + '</tbody></table>');
+    } else if (name === 'audit') {
+      const data = await getJSON('/api/admin/audit?limit=200');
+      const rows = data.events.map(e =>
+        '<tr>' +
+          '<td>' + fmtTime(e.timestamp) + '</td>' +
+          '<td><strong>' + escapeHtml(e.agent||'') + '</strong></td>' +
+          '<td>' + escapeHtml(e.event_type||'') + '</td>' +
+          '<td>' + escapeHtml(e.input_summary||'').slice(0,40) + '</td>' +
+          '<td>' + escapeHtml(e.output_summary||'').slice(0,80) + '</td>' +
+        '</tr>').join('');
+      c.innerHTML = panel('Audit Trail (last 200)', '<table><thead><tr><th>Time</th><th>Agent</th><th>Event</th><th>Input</th><th>Output</th></tr></thead><tbody>' + (rows || '<tr><td colspan=5 class="empty">No events yet.</td></tr>') + '</tbody></table>');
+    } else if (name === 'clients') {
+      const data = await getJSON('/api/admin/clients');
+      const rows = (data.clients||[]).map(c =>
+        '<tr>' +
+          '<td class="mono">' + escapeHtml(c.client_id) + '</td>' +
+          '<td>' + escapeHtml(c.full_name||'') + '</td>' +
+          '<td>' + escapeHtml(c.email||'') + '</td>' +
+          '<td>' + escapeHtml(c.account_type||'') + '</td>' +
+          '<td>' + escapeHtml(c.risk_tolerance||'') + '</td>' +
+          '<td><span class="tag ' + (c.kyc_status==='verified'?'verified':'pending') + '">' + (c.kyc_status||'?') + '</span></td>' +
+        '</tr>').join('');
+      c.innerHTML = panel('CRM Clients', '<table><thead><tr><th>Client ID</th><th>Name</th><th>Email</th><th>Account</th><th>Risk</th><th>KYC</th></tr></thead><tbody>' + (rows || '<tr><td colspan=6 class="empty">No clients.</td></tr>') + '</tbody></table>');
+    } else if (name === 'documents') {
+      const data = await getJSON('/api/admin/documents');
+      const rows = (data.documents||[]).reverse().map(d =>
+        '<tr>' +
+          '<td class="mono">' + escapeHtml(d.doc_id) + '</td>' +
+          '<td>' + escapeHtml(d.template||'') + '</td>' +
+          '<td>' + fmtTime(d.created_at) + '</td>' +
+          '<td class="mono">' + escapeHtml(d.path||'').slice(-40) + '</td>' +
+        '</tr>').join('');
+      c.innerHTML = panel('Generated Documents', '<table><thead><tr><th>Doc ID</th><th>Template</th><th>Created</th><th>Path</th></tr></thead><tbody>' + (rows || '<tr><td colspan=4 class="empty">No documents generated yet.</td></tr>') + '</tbody></table>');
+    } else if (name === 'events') {
+      const data = await getJSON('/api/admin/events');
+      const rows = (data.events||[]).map(e =>
+        '<tr>' +
+          '<td class="mono">' + escapeHtml(e.event_id) + '</td>' +
+          '<td>' + escapeHtml(e.title||'') + '</td>' +
+          '<td>' + escapeHtml(e.when||'') + '</td>' +
+          '<td>' + (e.duration_minutes||30) + ' min</td>' +
+          '<td>' + ((e.attendees||[]).join(', ')||'-') + '</td>' +
+        '</tr>').join('');
+      c.innerHTML = panel('Calendar Events', '<table><thead><tr><th>Event ID</th><th>Title</th><th>When</th><th>Duration</th><th>Attendees</th></tr></thead><tbody>' + (rows || '<tr><td colspan=5 class="empty">No events scheduled.</td></tr>') + '</tbody></table>');
+    } else if (name === 'kb') {
+      const stats = await getJSON('/api/admin/kb/stats');
+      c.innerHTML =
+        '<div class="panel"><div class="head">Knowledge Base</div><div class="kb-stats">' +
+          '<div><strong>Collection:</strong> ' + escapeHtml(stats.name||'bos_kb') + '</div>' +
+          '<div><strong>Chunks:</strong> ' + (stats.chunks ?? 0) + '</div>' +
+        '</div></div>' +
+        '<div class="panel">' +
+          '<div class="head">Ingest documents</div>' +
+          '<div class="ingest-form">' +
+            '<button class="btn" onclick="seedKb()">Seed from /knowledge_base</button>' +
+            '<input type="text" id="ingestSource" placeholder="source name" style="flex:0 0 160px">' +
+            '<select id="ingestType"><option value="policy">policy</option><option value="sop">sop</option><option value="knowledge">knowledge</option></select>' +
+            '<input type="text" id="ingestText" placeholder="text content" style="flex:1; min-width:260px">' +
+            '<button class="btn" onclick="ingestText()">Ingest Text</button>' +
+          '</div>' +
+          '<div class="ingest-form">' +
+            '<input type="file" id="ingestFile">' +
+            '<button class="btn" onclick="ingestFile()">Upload File</button>' +
+          '</div>' +
+          '<div class="ingest-form">' +
+            '<input type="text" id="searchQuery" placeholder="test query" style="flex:1">' +
+            '<button class="btn" onclick="kbSearch()">Search</button>' +
+          '</div>' +
+          '<div id="ingestResult"></div>' +
+        '</div>';
+    } else if (name === 'metrics') {
+      const m = await getJSON('/api/admin/metrics');
+      const s1 = m.last_1h, s24 = m.last_24h;
+      c.innerHTML =
+        '<div class="kpis" style="grid-template-columns:repeat(4,1fr);margin-bottom:14px">' +
+          '<div class="kpi"><div class="label">LLM calls (24h)</div><div class="value">' + s24.calls + '</div></div>' +
+          '<div class="kpi"><div class="label">Tokens (24h)</div><div class="value">' + s24.total_tokens + '</div><div class="sub">' + s24.prompt_tokens + ' in / ' + s24.completion_tokens + ' out</div></div>' +
+          '<div class="kpi"><div class="label">Cost (24h)</div><div class="value">$' + s24.cost_usd.toFixed(4) + '</div></div>' +
+          '<div class="kpi"><div class="label">Avg latency</div><div class="value">' + s24.avg_latency_ms + ' ms</div><div class="sub">' + s24.errors + ' errors</div></div>' +
+        '</div>' +
+        '<div class="panel"><div class="head">Token usage (last hour, 5-min buckets)</div><div style="padding:14px 16px"><canvas id="tokensChart" height="80"></canvas></div></div>' +
+        '<div class="panel"><div class="head">Cost (last hour, 5-min buckets)</div><div style="padding:14px 16px"><canvas id="costChart" height="80"></canvas></div></div>';
+      // Render charts
+      const ts = m.timeseries_1h || [];
+      const labels = ts.map(t => new Date(t.bucket * 1000).toLocaleTimeString());
+      const tokens = ts.map(t => t.tokens);
+      const calls = ts.map(t => t.calls);
+      const cost = ts.map(t => (t.cost || 0).toFixed(6));
+      if (window._tokensChart) window._tokensChart.destroy();
+      if (window._costChart) window._costChart.destroy();
+      if (typeof Chart !== 'undefined') {
+        window._tokensChart = new Chart(document.getElementById('tokensChart'), {
+          type: 'line',
+          data: { labels, datasets: [
+            { label: 'tokens', data: tokens, borderColor: '#2563eb', backgroundColor: 'rgba(37,99,235,0.1)', fill: true, tension: 0.3 },
+            { label: 'calls', data: calls, borderColor: '#16a34a', backgroundColor: 'transparent', yAxisID: 'y2', tension: 0.3 },
+          ]},
+          options: { responsive: true, scales: { y: { position: 'left' }, y2: { position: 'right', grid: { display: false } } }, plugins: { legend: { labels: { color: '#6b7280', font: { size: 11 } } } } },
+        });
+        window._costChart = new Chart(document.getElementById('costChart'), {
+          type: 'line',
+          data: { labels, datasets: [{ label: 'cost USD', data: cost, borderColor: '#d97706', backgroundColor: 'rgba(217,119,6,0.1)', fill: true, tension: 0.3 }] },
+          options: { responsive: true, plugins: { legend: { labels: { color: '#6b7280', font: { size: 11 } } } } },
+        });
+      }
+    }
+  } catch (e) {
+    c.innerHTML = '<div class="panel"><div class="empty">Error: ' + escapeHtml(e.message) + '</div></div>';
+  }
+}
+
+function panel(title, body) {
+  return '<div class="panel"><div class="head">' + title + '</div><div>' + body + '</div></div>';
+}
+
+async function decide(id, decision) {
+  const note = prompt('Optional note:', '');
+  if (note === null) return;
+  try {
+    await postJSON('/api/approvals/' + id + '/decision', { decision: decision, note: note || null });
+    refreshAll();
+  } catch (e) {
+    alert('Error: ' + e.message);
+  }
+}
+
+async function seedKb() {
+  try {
+    const r = await postJSON('/api/ingest/seed', {});
+    $('ingestResult').textContent = 'Seeded ' + r.ingested_total + ' chunks from ' + r.files.length + ' files.';
+  } catch (e) {
+    $('ingestResult').textContent = 'Error: ' + e.message;
+  }
+}
+
+async function ingestText() {
+  try {
+    const r = await postJSON('/api/ingest/text', {
+      source: $('ingestSource').value || 'manual',
+      doc_type: $('ingestType').value,
+      text: $('ingestText').value,
+    });
+    $('ingestResult').textContent = 'Ingested ' + r.ingested + ' chunks from ' + r.source + '.';
+  } catch (e) {
+    $('ingestResult').textContent = 'Error: ' + e.message;
+  }
+}
+
+async function ingestFile() {
+  const file = $('ingestFile').files[0];
+  if (!file) return;
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('doc_type', $('ingestType').value);
+  try {
+    const r = await fetch('/api/ingest/file', {
+      method: 'POST',
+      headers: { 'X-API-Key': API_KEY() },
+      body: fd,
+    });
+    const data = await r.json();
+    $('ingestResult').textContent = r.ok ? 'Ingested ' + data.ingested + ' chunks from ' + data.source + '.' : 'Error: ' + JSON.stringify(data);
+  } catch (e) {
+    $('ingestResult').textContent = 'Error: ' + e.message;
+  }
+}
+
+async function kbSearch() {
+  const q = $('searchQuery').value.trim();
+  if (!q) {
+    $('ingestResult').textContent = '';
+    return;
+  }
+  $('ingestResult').textContent = 'Searching...';
+  try {
+    const r = await getJSON('/api/ingest/search?q=' + encodeURIComponent(q));
+    const results = (r.data?.results || []).map((x, i) =>
+      '[' + (i+1) + '] ' + x.source + ' (score=' + (x.score||0).toFixed(2) + '):\n' + (x.text||'').slice(0, 200) + '...'
+    ).join('\n\n');
+    $('ingestResult').textContent = results || '(no results)';
+  } catch (e) {
+    $('ingestResult').textContent = 'Error: ' + e.message;
+  }
+}
+
+refreshAll();
+setInterval(refreshAll, 5000);
+</script>
+</body>
+</html>

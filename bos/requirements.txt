@@ -1,0 +1,47 @@
+# ============================================================
+# Brokerage OS (BOS) - Phase 1 dependencies
+# Target: Python 3.10+
+# All resources run LOCAL except Gemini API (LLM + embeddings).
+# ============================================================
+
+# --- Agent orchestration (versions pinned loosely for compatibility) ---
+langgraph>=0.2.50,<0.3
+langgraph-checkpoint-sqlite>=2.0.0,<3
+langchain>=0.3.7,<0.4
+langchain-core>=0.3.25,<0.4
+langchain-community>=0.3.7,<0.4
+
+# --- LLM / Embeddings: Google Vertex AI (uses ADC, no API key needed) ---
+langchain-google-vertexai>=2.1.2,<3
+
+# --- Rate limiting ---
+slowapi>=0.1.9
+
+# --- Web framework ---
+fastapi>=0.115,<0.117
+uvicorn[standard]>=0.32,<0.35
+sse-starlette>=2.1,<3
+pydantic>=2.9,<3
+pydantic-settings>=2.6,<3
+
+# --- Persistence ---
+sqlalchemy>=2.0.36,<3
+aiosqlite>=0.20,<0.21
+
+# --- Vector store (LOCAL, file-based) ---
+chromadb>=0.5.15,<0.6
+
+# --- Document parsing for RAG ---
+pypdf>=5.1,<6
+tiktoken>=0.8,<0.10
+
+# --- Security / utilities ---
+python-multipart>=0.0.17
+python-dotenv>=1.0.1
+structlog>=24.4,<25
+tenacity>=9.0,<10
+
+# --- Tests ---
+pytest>=8.3,<9
+pytest-asyncio>=0.24,<0.25
+httpx>=0.27,<0.29

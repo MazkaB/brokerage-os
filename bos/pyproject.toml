@@ -1,0 +1,15 @@
+[project]
+name = "brokerage-os"
+version = "1.0.0"
+description = "Hierarchical Multi-Agent Brokerage Operating System (Phase 1) - LangGraph + Gemini"
+requires-python = ">=3.10"
+authors = [{ name = "BOS Team" }]
+readme = "README.md"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+addopts = "-q --tb=short"
+
+[tool.setuptools]
+packages = ["app"]
