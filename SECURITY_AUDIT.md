@@ -41,7 +41,7 @@
 - `bos/.env.example:6` (**NOT gitignored — will be committed**)
 - `bos/SETUP_NOTES.md:7` (**NOT gitignored — will be committed**)
 
-**The key** (already auto-revoked by Google): `REDACTED_GOOGLE_API_KEY`
+**The key** (already auto-revoked by Google): *[redacted in this audit report to prevent re-detection by secret scanners — the original value is no longer referenced anywhere in the repo]*
 
 **Impact**: Anyone with repo access has a working Gemini key (until revoked, which it now is). Pattern repeats if user pastes new key into `.env.example` as a template.
 

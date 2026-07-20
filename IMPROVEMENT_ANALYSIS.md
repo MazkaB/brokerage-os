@@ -59,7 +59,7 @@
 
 1. **`app/config.py:42-44`** — `default value` `api_key`, `jwt_secret`, `encryption_key` adalah `string placeholder` `"bos-local-dev-key-CHANGE-ME"`, `"bos-local-jwt-secret-CHANGE-ME"`, `"bos-local-encryption-key-32bytes"`. Jika env var tidak diset, sistem tetap `boot` dengan kredensial `default` yang diketahui publik.
 2. **`app/security.py:73-79`** — direktori 5 user demo (`advisor@bos.local`, dll.) di-`hardcode` di kode Python, bukan di DB atau `config file`. Tidak ada cara `add/edit/delete user` tanpa `code change`.
-3. **`.env.example:6`** berisi `API key` Gemini `ASLI` yang sudah `auto-revoked`: `GEMINI_API_KEY=REDACTED_GOOGLE_API_KEY`. Harusnya `placeholder` `your-api-key-here`. Ini `security smell` (kunci pernah `leak`, walau sudah `disabled`).
+3. **`.env.example:6`** sebelumnya berisi API key Gemini yang valid (kini di-revoke dan diganti dengan placeholder kosong). Ini `security smell` awal — kunci pernah bocor walau sudah `disabled`. Setup sekarang pakai Vertex AI + ADC, tidak perlu API key sama sekali.
 4. **`web/index.html:128` dan `web/admin.html:91`** — `API key` `default` `bos-local-dev-key-CHANGE-ME` di-`hardcode` di `HTML` `value attribute`.
 
 #### E. PII Handling yang Setengah Jadi
