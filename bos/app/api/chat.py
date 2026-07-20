@@ -79,6 +79,7 @@ def _resolve_auth(req: ChatRequest, api_ctx: AuthContext):
 
 
 def _initial_state(req: ChatRequest, ctx: AuthContext, thread_id: str) -> Dict[str, Any]:
+    from ..injection import check_and_audit
     ltm = get_long_term_memory()
     profile = ltm.get_profile(ctx.user_id) or {}
     # If attachments were uploaded, surface them in the user message so the
@@ -88,6 +89,19 @@ def _initial_state(req: ChatRequest, ctx: AuthContext, thread_id: str) -> Dict[s
     if attachments:
         names = ", ".join(a.get("filename", "?") for a in attachments)
         user_message = f"{req.message}\n\n[User attached: {names}]"
+
+    # Prompt-injection detection (Phase 2). Sanitizes the message before it
+    # reaches the LLM and logs suspicious patterns to the audit trail.
+    inj = check_and_audit(user_message, thread_id)
+    if inj["is_injection"] and inj["confidence"] >= 0.7:
+        # High-confidence attack: replace with a benign placeholder
+        user_message = (
+            f"[User message blocked by injection detector: "
+            f"{', '.join(inj['matched_patterns'])}]"
+        )
+    elif inj["is_injection"]:
+        user_message = inj["sanitized_text"]
+
     return {
         "thread_id": thread_id,
         "user_message": user_message,

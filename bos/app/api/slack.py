@@ -1,28 +1,26 @@
 """
-Slack adapter (Phase 1 inbound webhook).
+Slack adapter (Phase 1 inbound webhook + Phase 2 OAuth flow).
 
 Provides:
-  POST /api/slack/event     - receives Slack Events API callbacks
-  POST /api/slack/command   - receives Slack slash commands
+  GET  /api/slack/oauth/callback  - OAuth v2 redirect target (Phase 2)
+  POST /api/slack/event            - Slack Events API callback
+  POST /api/slack/command          - Slack slash command
 
-Phase 1 supports two patterns:
-  1. Slack App with Event Subscriptions → URL points here
-  2. Slack incoming webhook from a custom workflow
+Phase 1 supports webhook pattern. Phase 2 adds the full OAuth v2 flow so
+the BOS Slack app can be installed into any workspace without manual token
+management. Tokens are persisted in the `slack_installations` table.
 
-The adapter translates Slack events into BOS ChatRequests so the rest of
-the LangGraph topology runs unchanged. Responses are posted back to Slack
-via SLACK_BOT_TOKEN + chat.postMessage (if configured).
-
-If no token is configured, responses are returned in the HTTP body so the
-caller (e.g. a Slack workflow that uses Webhooks) can deliver them.
-
-Outbound notifications (e.g. approval-required cards) also go through this
-module via `post_to_slack`.
+Setup:
+  Set SLACK_CLIENT_ID, SLACK_CLIENT_SECRET, SLACK_REDIRECT_URL
+  Add https://your-host/api/slack/oauth/callback to your Slack app's
+  Redirect URLs in the Slack console.
 """
 from __future__ import annotations
 
 import logging
 import os
+import sqlite3
+import time
 from typing import Any, Dict, Optional
 
 import httpx
@@ -31,6 +29,7 @@ from pydantic import BaseModel
 
 from ..audit import get_audit
 from ..config import get_settings
+from ..db import raw_connection
 from ..security import AuthContext
 from .deps import require_api_key
 
@@ -38,7 +37,123 @@ log = logging.getLogger("bos.api.slack")
 router = APIRouter(prefix="/api/slack", tags=["slack"])
 
 
-def _slack_token() -> Optional[str]:
+# Schema for token storage
+_SLACK_SCHEMA = """
+CREATE TABLE IF NOT EXISTS slack_installations (
+    team_id TEXT PRIMARY KEY,
+    team_name TEXT,
+    bot_user_id TEXT,
+    bot_access_token TEXT,
+    installed_at REAL,
+    installed_by TEXT
+);
+"""
+
+
+def _init_slack_schema():
+    try:
+        with raw_connection() as c:
+            c.executescript(_SLACK_SCHEMA)
+            c.commit()
+    except Exception as e:
+        log.warning("slack_installations schema init skipped: %s", e)
+
+
+def _slack_client_credentials() -> tuple[str, str]:
+    """Return (client_id, client_secret) from env vars."""
+    return os.environ.get("SLACK_CLIENT_ID", ""), os.environ.get("SLACK_CLIENT_SECRET", "")
+
+
+def _store_team_token(team_id: str, team_name: str, bot_user_id: str, token: str, installer: str):
+    with raw_connection() as c:
+        c.execute(
+            """INSERT INTO slack_installations
+               (team_id, team_name, bot_user_id, bot_access_token, installed_at, installed_by)
+               VALUES (?, ?, ?, ?, ?, ?)
+               ON CONFLICT(team_id) DO UPDATE SET
+                 team_name=excluded.team_name,
+                 bot_user_id=excluded.bot_user_id,
+                 bot_access_token=excluded.bot_access_token,
+                 installed_at=excluded.installed_at,
+                 installed_by=excluded.installed_by""",
+            (team_id, team_name, bot_user_id, token, time.time(), installer),
+        )
+        c.commit()
+
+
+def _get_team_token(team_id: str) -> Optional[str]:
+    """Look up the bot token for a Slack team from DB."""
+    try:
+        with raw_connection() as c:
+            cur = c.execute(
+                "SELECT bot_access_token FROM slack_installations WHERE team_id = ?",
+                (team_id,),
+            )
+            row = cur.fetchone()
+        if row:
+            # row could be sqlite3.Row or tuple
+            if hasattr(row, "keys"):
+                return row["bot_access_token"]
+            return row[0] if row else None
+        return None
+    except Exception:
+        return None
+
+
+@router.get("/oauth/callback")
+async def slack_oauth_callback(code: str, request: Request):
+    """Phase 2 OAuth v2 redirect target.
+
+    Slack redirects here after the user authorizes the app. We exchange
+    the code for a bot token and store it keyed by team_id.
+    """
+    _init_slack_schema()
+    client_id, client_secret = _slack_client_credentials()
+    if not client_id or not client_secret:
+        raise HTTPException(500, detail="SLACK_CLIENT_ID/SECRET not configured")
+
+    try:
+        async with httpx.AsyncClient(timeout=15) as c:
+            r = await c.post("https://slack.com/api/oauth.v2.access", data={
+                "client_id": client_id,
+                "client_secret": client_secret,
+                "code": code,
+                "redirect_uri": os.environ.get("SLACK_REDIRECT_URL", ""),
+            })
+            data = r.json()
+    except Exception as e:
+        raise HTTPException(502, detail=f"oauth exchange failed: {e}")
+
+    if not data.get("ok"):
+        raise HTTPException(400, detail=f"slack denied: {data.get('error')}")
+
+    team_id = data.get("team", {}).get("id", "")
+    team_name = data.get("team", {}).get("name", "")
+    bot_user_id = data.get("bot_user_id", "")
+    bot_token = data.get("access_token", "")
+    installer = data.get("authed_user", {}).get("id", "")
+
+    _store_team_token(team_id, team_name, bot_user_id, bot_token, installer)
+    log.info("Slack app installed: team=%s name=%s installer=%s", team_id, team_name, installer)
+
+    return {
+        "status": "ok",
+        "team": team_name,
+        "message": "Slack workspace connected. You can close this window.",
+    }
+
+
+def _slack_token(team_id: Optional[str] = None) -> Optional[str]:
+    """Resolve the Slack bot token.
+
+    Priority:
+      1. If team_id given, look up team-scoped token from DB (OAuth flow)
+      2. Fall back to global SLACK_BOT_TOKEN env var (single-workspace mode)
+    """
+    if team_id:
+        t = _get_team_token(team_id)
+        if t:
+            return t
     return os.environ.get("SLACK_BOT_TOKEN")
 
 
@@ -49,14 +164,16 @@ def _resolve_channel(req_payload: Dict[str, Any]) -> Optional[str]:
     return req_payload.get("channel_id")
 
 
-async def post_to_slack(channel: str, text: str, blocks: Optional[list] = None) -> bool:
+async def post_to_slack(channel: str, text: str, blocks: Optional[list] = None,
+                       team_id: Optional[str] = None) -> bool:
     """Send a message to Slack. Returns True on success.
 
-    Requires SLACK_BOT_TOKEN env var. No-op (returns False) if not set.
+    Token resolved per-team (via OAuth flow) or falls back to SLACK_BOT_TOKEN.
+    No-op (returns False) if no token found.
     """
-    token = _slack_token()
+    token = _slack_token(team_id)
     if not token:
-        log.info("SLACK_BOT_TOKEN not set; skipping outbound message to %s", channel)
+        log.info("No Slack token for team=%s; skipping message to %s", team_id, channel)
         return False
     payload: Dict[str, Any] = {"channel": channel, "text": text}
     if blocks:

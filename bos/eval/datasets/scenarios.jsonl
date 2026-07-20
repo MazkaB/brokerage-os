@@ -1,0 +1,20 @@
+{"id": "S001", "message": "Summarize AAPL and TSLA", "expected_intent": "security_analysis", "expected_manager": "portfolio", "expected_approval_required": false, "must_contain": ["AAPL", "TSLA"]}
+{"id": "S002", "message": "Open a new retirement account for Jane Doe", "expected_intent": "account_opening", "expected_manager": "operations", "expected_approval_required": true}
+{"id": "S003", "message": "What are our KYC requirements?", "expected_manager": "compliance", "must_contain": ["KYC"]}
+{"id": "S004", "message": "Show my recent clients", "expected_manager": "operations"}
+{"id": "S005", "message": "Schedule a meeting with compliance", "expected_manager": "operations"}
+{"id": "S006", "message": "Hi, what can you do?", "expected_intent": "greeting", "expected_manager": "general"}
+{"id": "S007", "message": "Analyze NVDA", "expected_manager": "portfolio", "must_contain": ["NVDA"]}
+{"id": "S008", "message": "Compare funds for retirement planning", "expected_manager": "portfolio"}
+{"id": "S009", "message": "Transfer my account from another broker", "expected_intent": "account_transfer", "expected_manager": "operations", "expected_approval_required": true}
+{"id": "S010", "message": "Explain our AML screening process", "expected_manager": "compliance", "must_contain": ["AML"]}
+{"id": "S011", "message": "What's the latest market news?", "expected_manager": "portfolio"}
+{"id": "S012", "message": "Look up client C-1001", "expected_manager": "operations"}
+{"id": "S013", "message": "Generate an account opening form for John Smith", "expected_manager": "operations"}
+{"id": "S014", "message": "Do I need enhanced due diligence for this client?", "expected_manager": "compliance"}
+{"id": "S015", "message": "Hello there", "expected_intent": "greeting", "expected_manager": "general"}
+{"id": "S016", "message": "Compare MSFT vs GOOGL", "expected_manager": "portfolio", "must_contain": ["MSFT", "GOOGL"]}
+{"id": "S017", "message": "Prepare a compliance review memo", "expected_manager": "operations"}
+{"id": "S018", "message": "Tell me about TSLA risk profile", "expected_manager": "portfolio", "must_contain": ["TSLA"]}
+{"id": "S019", "message": "What documents do I need to submit?", "expected_manager": "compliance"}
+{"id": "S020", "message": "Set up a follow-up reminder", "expected_manager": "operations"}

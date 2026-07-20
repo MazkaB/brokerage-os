@@ -249,21 +249,24 @@ Includes `Deployment`, `Service`, `PVC`, `Ingress` (TLS-ready), and `HPA`.
 
 ---
 
-## Phase 2 roadmap
+## Phase 2 — Implemented
 
-The following are explicitly deferred per PRD §5 and `GAP_ANALYSIS.md`:
+The following Phase 2 features are now in the codebase (opt-in unless noted):
 
-- AES-256 at rest with KMS-managed keys
-- PostgreSQL migration (from SQLite)
-- Real tool integrations (Salesforce, DocuSign, Bloomberg, live broker APIs)
-- True parallel workers via LangGraph `Send` API
-- OpenTelemetry + Grafana dashboards
-- Prompt-injection detection
-- Memory TTL / pruning / summarization pipeline
-- Real Slack/Teams OAuth flow (currently webhook adapter)
-- Eval harness for KPIs (intent accuracy, hallucination rate)
-- Compliance certifications (SOC2 / FINRA / SEC)
-- Voice channel
+| Feature | Status | How to enable |
+|---------|--------|---------------|
+| **PostgreSQL migration** | DONE | `export BOS_DB_URL=postgresql+psycopg2://...` (defaults to SQLite) |
+| **AES-256 at rest** | DONE | Local Fernet default; KMS via `KMS_KEY_ID=projects/.../cryptoKeys/...` |
+| **Memory TTL / pruning / summarization** | DONE | Runs hourly by default; configurable via `BOS_PRUNING_INTERVAL_SECONDS` |
+| **True parallel workers (Send API)** | DONE | `export BOS_PARALLEL_WORKERS=1` |
+| **Prompt-injection detection** | DONE (always on) | Rule-based + optional LLM classifier |
+| **OpenTelemetry** | DONE | `export BOS_OTEL_EXPORTER_OTLP_ENDPOINT=https://otlp-collector:4318` |
+| **Grafana dashboard** | DONE | Import `deploy/grafana/bos-dashboard.json` into Grafana |
+| **Real tool adapters (Salesforce/DocuSign/Bloomberg)** | DONE | Set `SALESFORCE_*`, `DOCUSIGN_*`, `BLOOMBERG_*` env vars (auto-fallback to mock) |
+| **Real Slack OAuth flow** | DONE | Set `SLACK_CLIENT_ID`, `SLACK_CLIENT_SECRET`, `SLACK_REDIRECT_URL`; visit `/api/slack/oauth/callback` |
+| **Eval harness** | DONE | `python -m eval.runner --dataset eval/datasets/scenarios.jsonl` |
+| **Voice channel** | DONE | `export BOS_VOICE_ENABLED=true`; open http://localhost:8000/voice |
+| **Compliance docs (SOC2/FINRA/SEC)** | DOCS | See `compliance/` directory |
 
 ---
 

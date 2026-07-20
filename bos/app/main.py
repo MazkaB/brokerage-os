@@ -30,10 +30,13 @@ from .api.approval import router as approval_router
 from .api.chat import router as chat_router
 from .api.ingest import router as ingest_router
 from .api.slack import router as slack_router
+from .api.voice import router as voice_router
 from .audit import get_audit
 from .config import get_settings
 from .logging_setup import configure_logging
 from .memory.long_term import get_long_term_memory
+from .memory.pruning import start_background_loop as start_pruning_loop
+from .otel import setup_otel
 
 log = logging.getLogger("bos.main")
 
@@ -125,8 +128,19 @@ async def lifespan(app: FastAPI):
     # Start background scheduler for approval expiry
     expiry_task = asyncio.create_task(_approval_expiry_loop())
     log.info("Background approval-expiry task started")
+
+    # Start memory retention / pruning loop (Phase 2)
+    try:
+        pruning_task = start_pruning_loop()
+        log.info("Background memory-pruning task started")
+    except Exception as e:
+        log.warning("Pruning loop start failed: %s", e)
+        pruning_task = None
+
     yield
     expiry_task.cancel()
+    if pruning_task and not pruning_task.done():
+        pruning_task.cancel()
     log.info("BOS shutting down")
 
 
@@ -144,6 +158,12 @@ def create_app() -> FastAPI:
 
     # Rate limiter (custom middleware - simpler than slowapi for our needs)
     app.add_middleware(RateLimitMiddleware)
+
+    # OpenTelemetry instrumentation (opt-in via env)
+    try:
+        setup_otel(app)
+    except Exception as e:
+        log.warning("OTel setup failed: %s", e)
 
     app.add_middleware(
         CORSMiddleware,
@@ -167,6 +187,7 @@ def create_app() -> FastAPI:
     app.include_router(admin_router)
     app.include_router(ingest_router)
     app.include_router(slack_router)
+    app.include_router(voice_router)
 
     # Static assets (web/ folder)
     web_dir = Path(__file__).resolve().parent.parent / "web"
@@ -186,6 +207,13 @@ def create_app() -> FastAPI:
         if path.exists():
             return FileResponse(path)
         return HTMLResponse("<h1>BOS Admin</h1><p>web/admin.html not found</p>")
+
+    @app.get("/voice", response_class=HTMLResponse, include_in_schema=False)
+    async def voice_page():
+        path = web_dir / "voice.html"
+        if path.exists():
+            return FileResponse(path)
+        return HTMLResponse("<h1>BOS Voice</h1><p>web/voice.html not found</p>")
 
     return app
 

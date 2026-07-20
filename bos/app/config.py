@@ -35,6 +35,8 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
 
     # --- Storage ---
+    # Phase 1 default: SQLite file. Phase 2: set BOS_DB_URL for Postgres/etc.
+    db_url: str = Field(default="", alias="BOS_DB_URL")
     db_path: str = str(_PROJECT_ROOT / "app" / "data" / "bos.db")
     chroma_path: str = str(_PROJECT_ROOT / "app" / "data" / "chroma")
     kb_path: str = str(_PROJECT_ROOT / "knowledge_base")

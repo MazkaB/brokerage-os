@@ -1,9 +1,9 @@
 # Gap Analysis: PRD vs Implementation
 
-**Date:** 2026-07-20
+**Date:** 2026-07-20 (updated with Phase 2 features)
 **Baseline:** `prd.md` (3 stacked PRD versions + 3 feedback sections, 2738 lines)
-**Implementation:** `bos/` codebase after Phase 1 hardening
-**Headline:** **~70% of Phase 1 P0 requirements are implemented** (up from ~52% before the hardening sprint).
+**Implementation:** `bos/` codebase after Phase 1 hardening + Phase 2 additions
+**Headline:** **~90% of Phase 1 P0 requirements + ~85% of Phase 2 items are implemented**.
 
 ---
 
@@ -161,20 +161,29 @@ Tier reflects PRD language:
 
 ---
 
-## 8. Phase 2 Roadmap (deferred by design)
+## 8. Phase 2 Roadmap (status after Phase 2 work)
 
-Ordered by user-impact for a real brokerage deployment:
+| # | Phase 2 Item | Status | Where |
+|---|--------------|--------|-------|
+| 1 | AES-256 at rest + KMS | DONE | `app/crypto.py` (envelope, local Fernet or GCP KMS) |
+| 2 | PostgreSQL migration | DONE | `app/db.py` (SQLAlchemy dialect switcher, BOS_DB_URL) |
+| 3 | Real tool integrations | DONE (adapters) | `app/tools/salesforce.py`, `docusign.py`, `bloomberg.py` |
+| 4 | True parallel workers (Send API) | DONE | `app/graph.py:parallel_dispatcher`, `BOS_PARALLEL_WORKERS=1` |
+| 5 | OpenTelemetry + Grafana | DONE | `app/otel.py`, `deploy/grafana/bos-dashboard.json` |
+| 6 | Prompt-injection detection | DONE | `app/injection.py` (rule + LLM-based) |
+| 7 | Memory TTL / pruning / summarization | DONE | `app/memory/pruning.py` |
+| 8 | Real Slack/Teams OAuth | DONE (Slack) | `app/api/slack.py` `/oauth/callback` |
+| 9 | Eval harness for KPIs | DONE | `eval/runner.py` + `eval/datasets/scenarios.jsonl` |
+| 10 | Compliance certifications | DOCS | `compliance/SOC2.md`, `FINRA.md`, `SEC.md` |
+| 11 | Voice channel | DONE | `app/api/voice.py`, `web/voice.html` |
 
-1. **AES-256 at rest + KMS-managed keys** — required for client PII
-2. **PostgreSQL migration** — scale beyond single-process
-3. **Real tool integrations** — Salesforce / DocuSign / Bloomberg
-4. **True parallel workers** (`Send` API) — performance
-5. **OpenTelemetry + Grafana** — production observability
-6. **Prompt-injection detection** — production safety
-7. **Memory TTL / pruning / summarization** — long-running deployments
-8. **Real Slack/Teams OAuth** — currently webhook-only
-9. **Eval harness for KPIs** — intent accuracy, hallucination rate, task completion
-10. **Compliance certifications** — SOC2 / FINRA / SEC
+Remaining Phase 3+ items (not implemented):
+- Real Microsoft Teams OAuth
+- Real WhatsApp Business Cloud API
+- Live broker / market-data contracts (currently mock fallback only)
+- Vector search at scale (Postgres + pgvector instead of local ChromaDB)
+- Multi-region deployment
+- SOC2/FINRA/SEC certification (not docs — actual audits)
 
 ---
 
